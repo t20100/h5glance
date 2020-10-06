@@ -64,7 +64,7 @@ def checkbox_w_label(label_content):
     l.for_ = c.id
     return [c, l]
 
-def item_for_dataset(name, ds):
+def item_for_dataset(name, ds, path):
     namespan = Span(name)
     namespan.add_css_classes("h5glance-dataset-name")
     if ds is None:
@@ -73,7 +73,7 @@ def item_for_dataset(name, ds):
         return li
     shape = utils.fmt_shape(ds.shape)
     copylink = Link("#", "[📋]")
-    copylink.set_attribute("data-hdf5-path", ds.name)
+    copylink.set_attribute("data-hdf5-path", path)
     copylink.add_css_classes("h5glance-dataset-copylink")
     li = ListItem(
         namespan,  " ", copylink, ": ",
@@ -82,17 +82,23 @@ def item_for_dataset(name, ds):
     li.add_css_classes("h5glance-dataset")
     return li
 
-def item_for_group(gname, grp):
+def item_for_group(gname, grp, path=None):
+    if path is None:
+        path = grp.name
+    if path == '/':
+        path = ''
+
     subgroups, datasets = [], []
     for name, obj in sorted(grp.items()):
+        logical_path = '/'.join((path, name.split('/')[-1]))
         if utils.is_group(obj):
-            subgroups.append((name, obj))
+            subgroups.append((name, obj, logical_path))
         else:
-            datasets.append((name, obj))
+            datasets.append((name, obj, logical_path))
 
     return ListItem(*checkbox_w_label(gname), make_list(
-        *[item_for_group(n, g) for n, g in subgroups],
-        *[item_for_dataset(n, d) for n, d in datasets],
+        *[item_for_group(n, g, p) for n, g, p in subgroups],
+        *[item_for_dataset(n, d, p) for n, d, p in datasets],
     ))
 
 def file_or_grp_name(obj):
